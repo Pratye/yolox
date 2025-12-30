@@ -67,7 +67,22 @@ class CraterDataset(CacheDataset):
         
         # Load all annotations
         self.annotations = self._load_all_annotations()
-        
+
+        # Filter out images that have no annotations to avoid training issues
+        valid_indices = []
+        filtered_count = 0
+        for i, img_path in enumerate(self.image_paths):
+            num_annotations = len(self.annotations.get(str(img_path), []))
+            if num_annotations > 0:
+                valid_indices.append(i)
+            else:
+                filtered_count += 1
+
+        if filtered_count > 0:
+            print(f"Filtered out {filtered_count} images with no valid annotations")
+            self.image_paths = [self.image_paths[i] for i in valid_indices]
+            self.num_imgs = len(self.image_paths)
+
         # For caching, we need to set data_dir to a common parent
         # and path_filename relative to that parent
         # Use the workspace root (parent of data_dir) as the base
@@ -150,22 +165,41 @@ class CraterDataset(CacheDataset):
                     
                     # Skip invalid detections
                     try:
-                        xmin = float(row.get('boundingBoxMinX(px)', -1))
-                        ymin = float(row.get('boundingBoxMinY(px)', -1))
-                        xmax = float(row.get('boundingBoxMaxX(px)', -1))
-                        ymax = float(row.get('boundingBoxMaxY(px)', -1))
-                        class_id = int(row.get('crater_classification', -1))
-                    except (ValueError, KeyError):
+                        xmin_str = row.get('boundingBoxMinX(px)', '').strip()
+                        ymin_str = row.get('boundingBoxMinY(px)', '').strip()
+                        xmax_str = row.get('boundingBoxMaxX(px)', '').strip()
+                        ymax_str = row.get('boundingBoxMaxY(px)', '').strip()
+                        class_str = row.get('crater_classification', '').strip()
+
+                        # Skip if any required field is empty
+                        if not xmin_str or not ymin_str or not xmax_str or not ymax_str or not class_str:
+                            continue
+
+                        xmin = float(xmin_str)
+                        ymin = float(ymin_str)
+                        xmax = float(xmax_str)
+                        ymax = float(ymax_str)
+                        class_id = int(float(class_str))  # Handle cases like "1.0"
+
+                    except (ValueError, KeyError, AttributeError) as e:
+                        # Debug: print problematic rows
+                        print(f"Warning: Invalid data in row: {row}, error: {e}")
                         continue
-                    
+
                     # Skip invalid entries
                     if xmin < 0 or ymin < 0 or xmax <= xmin or ymax <= ymin:
                         continue
-                    
+
                     # Skip invalid class
                     if class_id < 0 or class_id > 4:
+                        print(f"Warning: Invalid class_id {class_id} in {csv_path} for {img_filename}")
                         continue
-                    
+
+                    # Additional validation
+                    if xmin >= xmax or ymin >= ymax:
+                        print(f"Warning: Invalid bbox dimensions in {csv_path} for {img_filename}: {xmin},{ymin},{xmax},{ymax}")
+                        continue
+
                     # Convert to YOLOX format: [class, xmin, ymin, xmax, ymax]
                     annotation = np.array([class_id, xmin, ymin, xmax, ymax], dtype=np.float32)
                     annotations.append(annotation)

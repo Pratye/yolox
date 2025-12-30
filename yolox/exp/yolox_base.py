@@ -222,8 +222,8 @@ class Exp(BaseExp):
         return train_loader
 
     def random_resize(self, data_loader, epoch, rank, is_distributed):
-        # Use CUDA if available, otherwise CPU
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Use current device instead of hardcoded CUDA
+        device = next(self.parameters()).device if hasattr(self, 'parameters') else torch.device('cpu')
         tensor = torch.LongTensor(2).to(device)
 
         if rank == 0:

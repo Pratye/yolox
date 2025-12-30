@@ -1,0 +1,33 @@
+2025-12-30 21:49:51.048 | INFO     | yolox.utils.mps_patch:patch_trainer_for_mps:23 - Patching trainer for MPS device...
+2025-12-30 21:49:51.049 | INFO     | yolox.utils.mps_patch:patch_trainer_for_mps:241 - Trainer patched for MPS device
+2025-12-30 21:49:51.049 | INFO     | yolox.utils.mps_patch:mps_before_train:38 - args: Namespace(experiment_name='crater_yolox_s', name=None, dist_backend='nccl', dist_url=None, batch_size=16, devices=1, exp_file='exps/example/custom/crater_yolox_s.py', resume=False, ckpt='weights/yolox_m.pth', start_epoch=None, num_machines=1, machine_rank=0, fp16=False, cache=None, occupy=False, logger='tensorboard', opts=[])
+2025-12-30 21:49:51.049 | INFO     | yolox.utils.mps_patch:mps_before_train:40 - Starting training with MPS device...
+2025-12-30 21:49:51.049 | INFO     | yolox.utils.mps_patch:mps_before_train:44 - Skipping CUDA device setup (using MPS)
+2025-12-30 21:49:51.278 | INFO     | yolox.utils.mps_patch:mps_before_train:48 - Model Summary: Params: 25.28M, Gflops: 73.74
+2025-12-30 21:49:51.605 | INFO     | yolox.core.trainer:resume_train:341 - loading checkpoint for fine tuning
+2025-12-30 21:49:52.172 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.0.weight in checkpoint is torch.Size([80, 192, 1, 1]), while shape of head.cls_preds.0.weight in model is torch.Size([5, 192, 1, 1]).
+2025-12-30 21:49:52.172 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.0.bias in checkpoint is torch.Size([80]), while shape of head.cls_preds.0.bias in model is torch.Size([5]).
+2025-12-30 21:49:52.172 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.1.weight in checkpoint is torch.Size([80, 192, 1, 1]), while shape of head.cls_preds.1.weight in model is torch.Size([5, 192, 1, 1]).
+2025-12-30 21:49:52.172 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.1.bias in checkpoint is torch.Size([80]), while shape of head.cls_preds.1.bias in model is torch.Size([5]).
+2025-12-30 21:49:52.172 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.2.weight in checkpoint is torch.Size([80, 192, 1, 1]), while shape of head.cls_preds.2.weight in model is torch.Size([5, 192, 1, 1]).
+2025-12-30 21:49:52.172 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.2.bias in checkpoint is torch.Size([80]), while shape of head.cls_preds.2.bias in model is torch.Size([5]).
+2025-12-30 21:50:10.328 | INFO     | yolox.utils.mps_patch:mps_before_train:131 - init prefetcher, this might take one minute or less...
+2025-12-30 21:50:31.073 | INFO     | yolox.core.trainer:before_epoch:218 - ---> start train epoch1
+2025-12-30 21:51:46.179 | INFO     | yolox.core.trainer:after_train:200 - Training of experiment is done and the best AP is 0.00
+2025-12-30 21:51:55.733 | INFO     | yolox.utils.mps_patch:patch_trainer_for_mps:23 - Patching trainer for MPS device...
+2025-12-30 21:51:55.733 | INFO     | yolox.utils.mps_patch:patch_trainer_for_mps:241 - Trainer patched for MPS device
+2025-12-30 21:51:55.734 | INFO     | yolox.utils.mps_patch:mps_before_train:38 - args: Namespace(experiment_name='crater_yolox_s', name=None, dist_backend='nccl', dist_url=None, batch_size=8, devices=1, exp_file='exps/example/custom/crater_yolox_s.py', resume=False, ckpt='weights/yolox_m.pth', start_epoch=None, num_machines=1, machine_rank=0, fp16=False, cache=None, occupy=False, logger='tensorboard', opts=[])
+2025-12-30 21:51:55.734 | INFO     | yolox.utils.mps_patch:mps_before_train:40 - Starting training with MPS device...
+2025-12-30 21:51:55.734 | INFO     | yolox.utils.mps_patch:mps_before_train:44 - Skipping CUDA device setup (using MPS)
+2025-12-30 21:51:55.918 | INFO     | yolox.utils.mps_patch:mps_before_train:48 - Model Summary: Params: 25.28M, Gflops: 73.74
+2025-12-30 21:51:56.080 | INFO     | yolox.core.trainer:resume_train:341 - loading checkpoint for fine tuning
+2025-12-30 21:51:56.501 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.0.weight in checkpoint is torch.Size([80, 192, 1, 1]), while shape of head.cls_preds.0.weight in model is torch.Size([5, 192, 1, 1]).
+2025-12-30 21:51:56.501 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.0.bias in checkpoint is torch.Size([80]), while shape of head.cls_preds.0.bias in model is torch.Size([5]).
+2025-12-30 21:51:56.501 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.1.weight in checkpoint is torch.Size([80, 192, 1, 1]), while shape of head.cls_preds.1.weight in model is torch.Size([5, 192, 1, 1]).
+2025-12-30 21:51:56.501 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.1.bias in checkpoint is torch.Size([80]), while shape of head.cls_preds.1.bias in model is torch.Size([5]).
+2025-12-30 21:51:56.501 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.2.weight in checkpoint is torch.Size([80, 192, 1, 1]), while shape of head.cls_preds.2.weight in model is torch.Size([5, 192, 1, 1]).
+2025-12-30 21:51:56.501 | WARNING  | yolox.utils.checkpoint:load_ckpt:24 - Shape of head.cls_preds.2.bias in checkpoint is torch.Size([80]), while shape of head.cls_preds.2.bias in model is torch.Size([5]).
+2025-12-30 21:52:14.899 | INFO     | yolox.utils.mps_patch:mps_before_train:131 - init prefetcher, this might take one minute or less...
+2025-12-30 21:52:31.063 | INFO     | yolox.core.trainer:before_epoch:218 - ---> start train epoch1
+2025-12-30 21:53:14.238 | INFO     | yolox.core.trainer:after_iter:273 - epoch: 1/300, iter: 10/415, gpu mem: 0Mb, mem: 10.8Gb, iter_time: 4.177s, data_time: 0.611s, total_loss: 14.7, iou_loss: 3.7, l1_loss: 0.0, conf_loss: 10.8, cls_loss: 0.1, lr: 2.903e-08, size: 640, ETA: 6 days, 0:26:33
+2025-12-30 21:55:50.860 | INFO     | yolox.core.trainer:after_train:200 - Training of experiment is done and the best AP is 0.00

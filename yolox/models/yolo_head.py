@@ -279,6 +279,15 @@ class YOLOXHead(nn.Module):
         # calculate targets
         nlabel = (labels.sum(dim=2) > 0).sum(dim=1)  # number of objects
 
+        # Validate class indices to prevent CUDA errors
+        if labels.numel() > 0:
+            class_indices = labels[..., 0]
+            valid_mask = (class_indices >= 0) & (class_indices < self.num_classes)
+            if not valid_mask.all():
+                print(f"Warning: Found invalid class indices: {class_indices[~valid_mask]}")
+                # Set invalid labels to 0 (background class or first valid class)
+                labels[~valid_mask.unsqueeze(-1).expand_as(labels)] = 0
+
         total_num_anchors = outputs.shape[1]
         x_shifts = torch.cat(x_shifts, 1)  # [1, n_anchors_all]
         y_shifts = torch.cat(y_shifts, 1)  # [1, n_anchors_all]
@@ -475,9 +484,7 @@ class YOLOXHead(nn.Module):
             F.one_hot(gt_classes.to(torch.int64), self.num_classes)
             .float()
         )
-        # Clamp IoU values to avoid log(0) or log(negative) issues
-        pair_wise_ious = torch.clamp(pair_wise_ious, min=1e-8, max=1.0)
-        pair_wise_ious_loss = -torch.log(pair_wise_ious)
+        pair_wise_ious_loss = -torch.log(pair_wise_ious + 1e-8)
 
         if mode == "cpu":
             cls_preds_, obj_preds_ = cls_preds_.cpu(), obj_preds_.cpu()
@@ -508,10 +515,12 @@ class YOLOXHead(nn.Module):
         del pair_wise_cls_loss, cost, pair_wise_ious, pair_wise_ious_loss
 
         if mode == "cpu":
-            gt_matched_classes = gt_matched_classes.cuda()
-            fg_mask = fg_mask.cuda()
-            pred_ious_this_matching = pred_ious_this_matching.cuda()
-            matched_gt_inds = matched_gt_inds.cuda()
+            # Move tensors back to the original device (could be CUDA, MPS, etc.)
+            device = bboxes_preds_per_image.device
+            gt_matched_classes = gt_matched_classes.to(device)
+            fg_mask = fg_mask.to(device)
+            pred_ious_this_matching = pred_ious_this_matching.to(device)
+            matched_gt_inds = matched_gt_inds.to(device)
 
         return (
             gt_matched_classes,
