@@ -162,11 +162,14 @@ class CraterDataset(CacheDataset):
                     if xmin < 0 or ymin < 0 or xmax <= xmin or ymax <= ymin:
                         continue
                     
-                    # Skip invalid class
-                    if class_id < 0 or class_id > 4:
+                    # Skip invalid class - ensure class_id is in range [0, num_classes-1]
+                    # With num_classes=5, valid classes are 0-4
+                    # Use >= 5 instead of > 4 to be more explicit
+                    if class_id < 0 or class_id >= 5:
                         continue
                     
                     # Convert to YOLOX format: [class, xmin, ymin, xmax, ymax]
+                    # YOLOX expects class first, then bbox coordinates
                     annotation = np.array([class_id, xmin, ymin, xmax, ymax], dtype=np.float32)
                     annotations.append(annotation)
         except Exception as e:
@@ -244,9 +247,28 @@ class CraterDataset(CacheDataset):
             # Stack annotations
             target = np.vstack(annotations)
             
-            # Scale bounding boxes to resized image
-            r = min(self.img_size[0] / orig_height, self.img_size[1] / orig_width)
-            target[:, 1:5] *= r  # Scale xmin, ymin, xmax, ymax
+            # Validate class IDs before scaling (extra safety check)
+            # Format is [class, xmin, ymin, xmax, ymax]
+            valid_mask = (target[:, 0] >= 0) & (target[:, 0] < 5)
+            if not valid_mask.all():
+                invalid_count = (~valid_mask).sum()
+                print(f"Warning: Found {invalid_count} annotations with invalid class IDs in {img_path}")
+                print(f"  Invalid class IDs: {target[~valid_mask, 0]}")
+                target = target[valid_mask]
+            
+            if len(target) == 0:
+                target = np.zeros((0, 5), dtype=np.float32)
+            else:
+                # Scale bounding boxes to resized image
+                # Format is [class, xmin, ymin, xmax, ymax], so scale columns 1-4
+                r = min(self.img_size[0] / orig_height, self.img_size[1] / orig_width)
+                target[:, 1:5] *= r  # Scale xmin, ymin, xmax, ymax (class is in column 0)
+                
+                # Clip bounding boxes to image boundaries
+                target[:, 1] = np.clip(target[:, 1], 0, self.img_size[1] - 1)  # xmin
+                target[:, 2] = np.clip(target[:, 2], 0, self.img_size[0] - 1)  # ymin
+                target[:, 3] = np.clip(target[:, 3], target[:, 1] + 1, self.img_size[1])  # xmax
+                target[:, 4] = np.clip(target[:, 4], target[:, 2] + 1, self.img_size[0])  # ymax
         
         img_id = np.array([index])
         

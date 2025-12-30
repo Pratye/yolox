@@ -8,18 +8,12 @@ We actively monitor:
 - Dependency risks (critical vulnerabilities in project dependencies, such as requirements.txt, pyproject.toml, or equivalent files)  
 - Configuration flaws (insecure defaults in deployment scripts)  
 
-### Disclosure Channels (Choose one):
+### Disclosure Channels
 
-1. **Encrypted Email**  
-   Contact: `wangfeng19950315@163.com`  
-   *Subject format: `[SECURITY] ModuleName - Brief Description`*
+**GitHub Private Report**  
+Use GitHub's ["Report a vulnerability"](https://github.com/Pratye/yolo-scratch/security/advisories) feature  
 
-2. **GitHub Private Report**  
-   Use GitHub's ["Report a vulnerability"](https://github.com/Megvii-BaseDetection/YOLOX/security/advisories) feature  
-
-3. **Reporting Security Issues**  
-   Please report security issues using Create new issue: https://github.com/Megvii-BaseDetection/YOLOX/issues/new
-
+Or create a new issue: https://github.com/Pratye/yolo-scratch/issues/new
 
 ## Response Process  
 1. **Acknowledgement**  
@@ -30,7 +24,7 @@ We actively monitor:
    - Critical (CVSS ≥9.0): Patch within **7 days**  
    - High (CVSS 7-8.9): Patch within **30 days**  
 4. **Public Disclosure**  
-   - Published via [GitHub Advisories](https://github.com/Megvii-BaseDetection/YOLOX/security/advisories)  
+   - Published via [GitHub Advisories](https://github.com/Pratye/yolo-scratch/security/advisories)  
    - CVE assignment coordinated with [MITRE](https://cveform.mitre.org)
   
 ## Secure Development Practices  

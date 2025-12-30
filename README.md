@@ -172,13 +172,4 @@ This project is based on YOLOX and is licensed under the Apache License 2.0. See
 
 ## Citation
 
-If you use this codebase, please cite the original YOLOX paper:
-
-```bibtex
-@article{yolox2021,
-  title={YOLOX: Exceeding YOLO Series in 2021},
-  author={Ge, Zheng and Liu, Songtao and Wang, Feng and Li, Zeming and Sun, Jian},
-  journal={arXiv preprint arXiv:2107.08430},
-  year={2021}
-}
-```
+This project is based on YOLOX. For academic use, please refer to the original YOLOX paper: [arXiv:2107.08430](https://arxiv.org/abs/2107.08430)
