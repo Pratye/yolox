@@ -284,8 +284,7 @@ class YOLOXHead(nn.Module):
             class_indices = labels[..., 0]
             valid_mask = (class_indices >= 0) & (class_indices < self.num_classes)
             if not valid_mask.all():
-                print(f"Warning: Found invalid class indices: {class_indices[~valid_mask]}")
-                # Set invalid labels to 0 (background class or first valid class)
+                # Silently fix invalid class indices by setting them to 0
                 labels[~valid_mask.unsqueeze(-1).expand_as(labels)] = 0
 
         total_num_anchors = outputs.shape[1]
