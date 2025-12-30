@@ -213,6 +213,10 @@ docs/api
 *.engine
 events.out.tfevents*
 
+# Large model weights (should be downloaded separately)
+weights/*.pth
+!weights/README.md
+
 # vscode
 *.code-workspace
 .vscode

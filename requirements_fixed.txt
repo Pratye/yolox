@@ -1,0 +1,27 @@
+# YOLOX Requirements with fixed dependencies for MPS/CUDA support
+# This fixes NumPy and Protobuf version conflicts
+
+# Core dependencies
+torch>=1.13.0
+torchvision>=0.14.0
+numpy<2.0.0,>=1.23.5  # Fixed: TensorFlow requires NumPy < 2.0
+protobuf<5.0.0,>=3.20.3  # Fixed: TensorFlow requires protobuf < 5.0
+
+# YOLOX specific
+loguru
+tqdm
+scipy
+pycocotools
+tabulate
+thop
+ninja
+
+# Optional but recommended
+tensorboard
+onnx
+onnx-simplifier
+
+# Note: If you have TensorFlow installed, ensure compatibility:
+# tensorflow>=2.13.0,<2.17.0  # Optional, only if needed
+# tensorboard>=2.13.0  # For logging
+

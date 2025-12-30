@@ -267,13 +267,16 @@ class Trainer:
 
             mem_str = "gpu mem: {:.0f}Mb, mem: {:.1f}Gb".format(gpu_mem_usage(), mem_usage())
 
+            # Get lr with fallback to 0.0 if not set yet
+            lr_value = self.meter["lr"].latest if self.meter["lr"].latest is not None else 0.0
+
             logger.info(
                 "{}, {}, {}, {}, lr: {:.3e}".format(
                     progress_str,
                     mem_str,
                     time_str,
                     loss_str,
-                    self.meter["lr"].latest,
+                    lr_value,
                 )
                 + (", size: {:d}, {}".format(self.input_size[0], eta_str))
             )
@@ -281,19 +284,19 @@ class Trainer:
             if self.rank == 0:
                 if self.args.logger == "tensorboard":
                     self.tblogger.add_scalar(
-                        "train/lr", self.meter["lr"].latest, self.progress_in_iter)
+                        "train/lr", lr_value, self.progress_in_iter)
                     for k, v in loss_meter.items():
                         self.tblogger.add_scalar(
                             f"train/{k}", v.latest, self.progress_in_iter)
                 if self.args.logger == "wandb":
                     metrics = {"train/" + k: v.latest for k, v in loss_meter.items()}
                     metrics.update({
-                        "train/lr": self.meter["lr"].latest
+                        "train/lr": lr_value
                     })
                     self.wandb_logger.log_metrics(metrics, step=self.progress_in_iter)
                 if self.args.logger == 'mlflow':
                     logs = {"train/" + k: v.latest for k, v in loss_meter.items()}
-                    logs.update({"train/lr": self.meter["lr"].latest})
+                    logs.update({"train/lr": lr_value})
                     self.mlflow_logger.on_log(self.args, self.exp, self.epoch+1, logs)
 
             self.meter.clear_meters()
