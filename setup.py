@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) Megvii, Inc. and its affiliates. All Rights Reserved
+# Based on YOLOX by Megvii, Inc.
 
 import re
 import setuptools
@@ -64,8 +64,8 @@ def get_cmd_class():
 setuptools.setup(
     name="yolox",
     version=get_yolox_version(),
-    author="megvii basedet team",
-    url="https://github.com/Megvii-BaseDetection/YOLOX",
+    author="Crater Detection Team",
+    url="https://github.com/Pratye/yolo-scratch",
     package_dir=get_package_dir(),
     packages=setuptools.find_packages(exclude=("tests", "tools")) + list(get_package_dir().keys()),
     python_requires=">=3.6",
@@ -81,8 +81,7 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
     ],
     project_urls={
-        "Documentation": "https://yolox.readthedocs.io",
-        "Source": "https://github.com/Megvii-BaseDetection/YOLOX",
-        "Tracker": "https://github.com/Megvii-BaseDetection/YOLOX/issues",
+        "Source": "https://github.com/Pratye/yolo-scratch",
+        "Tracker": "https://github.com/Pratye/yolo-scratch/issues",
     },
 )

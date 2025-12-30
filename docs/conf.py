@@ -2,7 +2,7 @@
 # Code are based on
 # https://github.com/facebookresearch/detectron2/blob/master/docs/conf.py
 # Copyright (c) Facebook, Inc. and its affiliates.
-# Copyright (c) Megvii, Inc. and its affiliates.
+# Based on YOLOX by Megvii, Inc.
 
 # flake8: noqa
 
@@ -36,7 +36,7 @@ class GithubURLDomain(Domain):
     """
 
     name = "githuburl"
-    ROOT = "https://github.com/Megvii-BaseDetection/YOLOX"
+    ROOT = "https://github.com/Pratye/yolo-scratch"
     # LINKED_DOC = ["tutorials/install", "tutorials/getting_started"]
     LINKED_DOC = ["tutorials/install",]
 
@@ -109,9 +109,9 @@ import yolox  # isort: skip
 #     fixup_module_metadata("torch.utils.data", torch.utils.data.__dict__)
 
 
-project = "YOLOX"
-copyright = "2021-2021, YOLOX contributors"
-author = "YOLOX contributors"
+project = "YOLOX Crater Detection"
+copyright = "2024, Crater Detection Project"
+author = "Crater Detection Team"
 
 # The short X.Y version
 version = yolox.__version__
@@ -242,7 +242,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "yolox.tex", "yolox Documentation", "yolox contributors", "manual")
+    (master_doc, "yolox.tex", "YOLOX Crater Detection Documentation", author, "manual")
 ]
 
 
@@ -250,7 +250,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "YOLOX", "YOLOX Documentation", [author], 1)]
+man_pages = [(master_doc, "YOLOX", "YOLOX Crater Detection Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
@@ -262,10 +262,10 @@ texinfo_documents = [
     (
         master_doc,
         "YOLOX",
-        "YOLOX Documentation",
+        "YOLOX Crater Detection Documentation",
         author,
-        "YOLOX",
-        "One line description of project.",
+        "YOLOX Crater Detection",
+        "Crater detection using YOLOX",
         "Miscellaneous",
     )
 ]
