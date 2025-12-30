@@ -162,26 +162,11 @@ class CraterDataset(CacheDataset):
                     if xmin < 0 or ymin < 0 or xmax <= xmin or ymax <= ymin:
                         continue
                     
-                    # Handle crater classification - some CSV files may not have this column
-                    class_str = row.get('crater_classification', '')
-
-                    if not class_str or class_str.strip() == '':
-                        # If no classification column or empty value, assign to default class 0
-                        # This assumes all detections without classification are valid craters
-                        class_id = 0
-                    else:
-                        # Parse the classification value
-                        try:
-                            class_id = int(float(class_str))
-                            if class_id < 0 or class_id >= 5:
-                                print(f"Warning: Skipping invalid class_id {class_id} in {csv_path}")
-                                continue
-                        except (ValueError, TypeError):
-                            print(f"Warning: Could not parse class_id '{class_str}' in {csv_path}, skipping")
-                            continue
+                    # Skip invalid class
+                    if class_id < 0 or class_id > 4:
+                        continue
                     
                     # Convert to YOLOX format: [class, xmin, ymin, xmax, ymax]
-                    # YOLOX expects class first, then bbox coordinates
                     annotation = np.array([class_id, xmin, ymin, xmax, ymax], dtype=np.float32)
                     annotations.append(annotation)
         except Exception as e:
@@ -259,32 +244,9 @@ class CraterDataset(CacheDataset):
             # Stack annotations
             target = np.vstack(annotations)
             
-            # Validate class IDs before scaling (extra safety check)
-            # Format is [class, xmin, ymin, xmax, ymax]
-            valid_mask = (target[:, 0] >= 0) & (target[:, 0] < 5)
-            if not valid_mask.all():
-                invalid_count = (~valid_mask).sum()
-                print(f"Warning: Found {invalid_count} annotations with invalid class IDs in {img_path}")
-                print(f"  Invalid class IDs: {target[~valid_mask, 0]}")
-                target = target[valid_mask]
-
-                if len(target) == 0:
-                    print(f"Warning: All annotations filtered out for {img_path}")
-                    target = np.zeros((0, 5), dtype=np.float32)
-            
-            if len(target) == 0:
-                target = np.zeros((0, 5), dtype=np.float32)
-            else:
-                # Scale bounding boxes to resized image
-                # Format is [class, xmin, ymin, xmax, ymax], so scale columns 1-4
-                r = min(self.img_size[0] / orig_height, self.img_size[1] / orig_width)
-                target[:, 1:5] *= r  # Scale xmin, ymin, xmax, ymax (class is in column 0)
-                
-                # Clip bounding boxes to image boundaries
-                target[:, 1] = np.clip(target[:, 1], 0, self.img_size[1] - 1)  # xmin
-                target[:, 2] = np.clip(target[:, 2], 0, self.img_size[0] - 1)  # ymin
-                target[:, 3] = np.clip(target[:, 3], target[:, 1] + 1, self.img_size[1])  # xmax
-                target[:, 4] = np.clip(target[:, 4], target[:, 2] + 1, self.img_size[0])  # ymax
+            # Scale bounding boxes to resized image
+            r = min(self.img_size[0] / orig_height, self.img_size[1] / orig_width)
+            target[:, 1:5] *= r  # Scale xmin, ymin, xmax, ymax
         
         img_id = np.array([index])
         
