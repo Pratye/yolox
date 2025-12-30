@@ -164,8 +164,14 @@ class CraterDataset(CacheDataset):
                     
                     # Skip invalid class - ensure class_id is in range [0, num_classes-1]
                     # With num_classes=5, valid classes are 0-4
-                    # Use >= 5 instead of > 4 to be more explicit
-                    if class_id < 0 or class_id >= 5:
+                    # Also check for negative values and non-integer types
+                    try:
+                        class_id = int(float(row.get('crater_classification', -1)))
+                        if class_id < 0 or class_id >= 5:
+                            print(f"Warning: Skipping invalid class_id {class_id} in {csv_path}")
+                            continue
+                    except (ValueError, TypeError):
+                        print(f"Warning: Could not parse class_id '{row.get('crater_classification', 'N/A')}' in {csv_path}")
                         continue
                     
                     # Convert to YOLOX format: [class, xmin, ymin, xmax, ymax]
@@ -255,6 +261,10 @@ class CraterDataset(CacheDataset):
                 print(f"Warning: Found {invalid_count} annotations with invalid class IDs in {img_path}")
                 print(f"  Invalid class IDs: {target[~valid_mask, 0]}")
                 target = target[valid_mask]
+
+                if len(target) == 0:
+                    print(f"Warning: All annotations filtered out for {img_path}")
+                    target = np.zeros((0, 5), dtype=np.float32)
             
             if len(target) == 0:
                 target = np.zeros((0, 5), dtype=np.float32)

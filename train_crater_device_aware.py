@@ -74,6 +74,7 @@ def main():
     # Parse arguments
     configure_module()
     parser = make_parser()
+    parser.add_argument("--debug-dataset", action="store_true", help="Debug dataset class distribution")
     args = parser.parse_args()
     
     # Set default experiment file
@@ -120,6 +121,18 @@ def main():
     
     if args.cache is not None:
         exp.dataset = exp.get_dataset(cache=True, cache_type=args.cache)
+
+    # Debug: Check dataset class distribution
+    if hasattr(args, 'debug_dataset') and args.debug_dataset:
+        print("Debug: Checking dataset class distribution...")
+        class_counts = {}
+        for i in range(min(100, len(exp.dataset))):  # Check first 100 samples
+            _, target, _, _ = exp.dataset.pull_item(i)
+            if len(target) > 0:
+                classes = target[:, 0].astype(int)
+                for cls in classes:
+                    class_counts[cls] = class_counts.get(cls, 0) + 1
+        print(f"Debug: Class distribution in first 100 samples: {class_counts}")
     
     # For MPS/CPU, we need to modify the trainer to use the correct device
     if is_mps_device(device_str):

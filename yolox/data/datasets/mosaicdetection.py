@@ -111,19 +111,23 @@ class MosaicDetection(Dataset):
 
                 labels = _labels.copy()
                 # Normalized xywh to pixel xyxy format
+                # Note: labels format is [class, xmin, ymin, xmax, ymax]
                 if _labels.size > 0:
-                    labels[:, 0] = scale * _labels[:, 0] + padw
-                    labels[:, 1] = scale * _labels[:, 1] + padh
-                    labels[:, 2] = scale * _labels[:, 2] + padw
-                    labels[:, 3] = scale * _labels[:, 3] + padh
+                    # Only scale and offset the bounding box coordinates (indices 1-4)
+                    # Keep class ID (index 0) unchanged
+                    labels[:, 1] = scale * _labels[:, 1] + padw  # xmin
+                    labels[:, 2] = scale * _labels[:, 2] + padh  # ymin
+                    labels[:, 3] = scale * _labels[:, 3] + padw  # xmax
+                    labels[:, 4] = scale * _labels[:, 4] + padh  # ymax
                 mosaic_labels.append(labels)
 
             if len(mosaic_labels):
                 mosaic_labels = np.concatenate(mosaic_labels, 0)
-                np.clip(mosaic_labels[:, 0], 0, 2 * input_w, out=mosaic_labels[:, 0])
-                np.clip(mosaic_labels[:, 1], 0, 2 * input_h, out=mosaic_labels[:, 1])
-                np.clip(mosaic_labels[:, 2], 0, 2 * input_w, out=mosaic_labels[:, 2])
-                np.clip(mosaic_labels[:, 3], 0, 2 * input_h, out=mosaic_labels[:, 3])
+                # Clip bounding box coordinates only (indices 1-4), preserve class IDs (index 0)
+                np.clip(mosaic_labels[:, 1], 0, 2 * input_w, out=mosaic_labels[:, 1])  # xmin
+                np.clip(mosaic_labels[:, 2], 0, 2 * input_h, out=mosaic_labels[:, 2])  # ymin
+                np.clip(mosaic_labels[:, 3], 0, 2 * input_w, out=mosaic_labels[:, 3])  # xmax
+                np.clip(mosaic_labels[:, 4], 0, 2 * input_h, out=mosaic_labels[:, 4])  # ymax
 
             mosaic_img, mosaic_labels = random_affine(
                 mosaic_img,

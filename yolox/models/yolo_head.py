@@ -307,6 +307,14 @@ class YOLOXHead(nn.Module):
             else:
                 gt_bboxes_per_image = labels[batch_idx, :num_gt, 1:5]
                 gt_classes = labels[batch_idx, :num_gt, 0]
+
+                # Validate class IDs are in valid range
+                invalid_mask = (gt_classes < 0) | (gt_classes >= self.num_classes)
+                if invalid_mask.any():
+                    print(f"Error: Found invalid class IDs in batch {batch_idx}: {gt_classes[invalid_mask]}")
+                    print(f"Valid range: [0, {self.num_classes-1}]")
+                    # Clamp to valid range as fallback
+                    gt_classes = torch.clamp(gt_classes, 0, self.num_classes-1)
                 bboxes_preds_per_image = bbox_preds[batch_idx]
 
                 try:
