@@ -75,9 +75,17 @@ def patch_trainer_for_mps(trainer):
                 exp = self.exp
                 if exp.dataset is None:
                     with wait_for_the_master():
-                        assert cache_img is None, \
-                            "cache_img must be None if you didn't create exp.dataset before launch"
-                        exp.dataset = exp.get_dataset(cache=False, cache_type=cache_img)
+                        # Use caching if requested, but add memory management
+                        use_cache = cache_img is not None
+                        cache_type = cache_img if isinstance(cache_img, str) else "ram"
+
+                        if use_cache:
+                            logger.info(f"Enabling dataset caching for MPS (type: {cache_type})")
+                            logger.info("Note: MPS memory management may still accumulate during training")
+                        else:
+                            logger.info("Dataset caching disabled for MPS")
+
+                        exp.dataset = exp.get_dataset(cache=use_cache, cache_type=cache_type)
                 
                 exp.dataset = MosaicDetection(
                     dataset=exp.dataset,
@@ -108,8 +116,11 @@ def patch_trainer_for_mps(trainer):
                     mosaic=not no_aug,
                 )
                 
+                # Use default workers for MPS (no memory issues now)
+                num_workers = exp.data_num_workers
+
                 # Disable pin_memory for MPS
-                dataloader_kwargs = {"num_workers": exp.data_num_workers, "pin_memory": False}
+                dataloader_kwargs = {"num_workers": num_workers, "pin_memory": False}
                 dataloader_kwargs["batch_sampler"] = batch_sampler
                 dataloader_kwargs["worker_init_fn"] = worker_init_reset_seed
                 
@@ -166,10 +177,10 @@ def patch_trainer_for_mps(trainer):
                     self.wandb_logger.log_stuff_dict = {"lr": self.lr_scheduler.lr}
                 else:
                     self.wandb_logger = None
-                
-                from torch.utils.tensorboard import SummaryWriter
-                os.makedirs(self.file_name, exist_ok=True)
-                self.tblogger = SummaryWriter(self.file_name)
+
+                # TensorBoard disabled to avoid TensorFlow dependency issues
+                self.tblogger = None
+                logger.info("TensorBoard logging disabled (TensorFlow dependency issues)")
             else:
                 self.tblogger = None
                 self.wandb_logger = None
@@ -179,31 +190,31 @@ def patch_trainer_for_mps(trainer):
         # Patch train_one_iter to use device-aware autocast
         original_train_one_iter = trainer.train_one_iter
         
-        def mps_train_one_iter(self):
-            import time
-            iter_start_time = time.time()
-            
-            inps, targets = self.prefetcher.next()
-            inps = inps.to(self.data_type)
-            targets = targets.to(self.data_type)
-            targets.requires_grad = False
-            inps, targets = self.exp.preprocess(inps, targets, self.input_size)
-            data_end_time = time.time()
-            
-            # Use device-aware autocast
-            # MPS has limited AMP support, but we can try
-            if self.amp_training:
-                # For MPS, we'll use CPU autocast as fallback or disable
-                # MPS doesn't fully support torch.cuda.amp.autocast
-                try:
-                    # Try using autocast with device_type='cpu' as fallback
-                    with torch.cuda.amp.autocast(enabled=False):  # Disable for MPS
-                        outputs = self.model(inps, targets)
-                except:
-                    # If that fails, just run without autocast
+    def mps_train_one_iter(self):
+        import time
+        iter_start_time = time.time()
+
+        inps, targets = self.prefetcher.next()
+        inps = inps.to(self.data_type)
+        targets = targets.to(self.data_type)
+        targets.requires_grad = False
+        inps, targets = self.exp.preprocess(inps, targets, self.input_size)
+        data_end_time = time.time()
+
+        # Use device-aware autocast
+        # MPS has limited AMP support, but we can try
+        if self.amp_training:
+            # For MPS, we'll use CPU autocast as fallback or disable
+            # MPS doesn't fully support torch.cuda.amp.autocast
+            try:
+                # Try using autocast with device_type='cpu' as fallback
+                with torch.cuda.amp.autocast(enabled=False):  # Disable for MPS
                     outputs = self.model(inps, targets)
-            else:
+            except:
+                # If that fails, just run without autocast
                 outputs = self.model(inps, targets)
+        else:
+            outputs = self.model(inps, targets)
             
             loss = outputs["total_loss"]
             
@@ -220,14 +231,15 @@ def patch_trainer_for_mps(trainer):
             else:
                 loss.backward()
                 self.optimizer.step()
-            
+
+
             if self.use_model_ema:
                 self.ema_model.update(self.model)
-            
+
             lr = self.lr_scheduler.update_lr(self.progress_in_iter + 1)
             for param_group in self.optimizer.param_groups:
                 param_group["lr"] = lr
-            
+
             iter_end_time = time.time()
             self.meter.update(
                 iter_time=iter_end_time - iter_start_time,
@@ -235,9 +247,37 @@ def patch_trainer_for_mps(trainer):
                 lr=lr,
                 **outputs,
             )
+
+            # Light memory clearing every 50 iterations (non-blocking)
+            if hasattr(torch, 'mps') and torch.backends.mps.is_available() and (self.progress_in_iter + 1) % 50 == 0:
+                try:
+                    # Non-blocking memory clear - just suggest cleanup without synchronization
+                    torch.mps.empty_cache()
+                except:
+                    pass  # Ignore any errors in memory clearing
+
         
         trainer.train_one_iter = mps_train_one_iter.__get__(trainer, type(trainer))
-        
+
+        # Patch after_epoch for memory clearing
+        original_after_epoch = trainer.after_epoch
+
+        def mps_after_epoch(self):
+            # Clear MPS memory at end of each epoch
+            if hasattr(torch, 'mps') and torch.backends.mps.is_available():
+                try:
+                    torch.mps.empty_cache()
+                    import gc
+                    gc.collect()
+                    logger.info("MPS memory cleared at end of epoch")
+                except Exception as e:
+                    logger.warning(f"Failed to clear MPS memory: {e}")
+
+            # Call original after_epoch
+            return original_after_epoch()
+
+        trainer.after_epoch = mps_after_epoch.__get__(trainer, type(trainer))
+
         logger.info("Trainer patched for MPS device")
     
     return trainer

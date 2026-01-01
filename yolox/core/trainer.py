@@ -8,7 +8,8 @@ from loguru import logger
 
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
+# TensorBoard import removed to avoid TensorFlow dependency issues
+TENSORBOARD_AVAILABLE = False
 
 from yolox.data import DataPrefetcher
 from yolox.exp import Exp
@@ -180,7 +181,11 @@ class Trainer:
         # Tensorboard and Wandb loggers
         if self.rank == 0:
             if self.args.logger == "tensorboard":
-                self.tblogger = SummaryWriter(os.path.join(self.file_name, "tensorboard"))
+                if TENSORBOARD_AVAILABLE:
+                    self.tblogger = SummaryWriter(os.path.join(self.file_name, "tensorboard"))
+                else:
+                    logger.warning("TensorBoard not available, disabling TensorBoard logging")
+                    self.tblogger = None
             elif self.args.logger == "wandb":
                 self.wandb_logger = WandbLogger.initialize_wandb_logger(
                     self.args,
@@ -282,7 +287,7 @@ class Trainer:
             )
 
             if self.rank == 0:
-                if self.args.logger == "tensorboard":
+                if self.args.logger == "tensorboard" and self.tblogger is not None:
                     self.tblogger.add_scalar(
                         "train/lr", lr_value, self.progress_in_iter)
                     for k, v in loss_meter.items():
@@ -363,7 +368,7 @@ class Trainer:
         self.best_ap = max(self.best_ap, ap50_95)
 
         if self.rank == 0:
-            if self.args.logger == "tensorboard":
+            if self.args.logger == "tensorboard" and self.tblogger is not None:
                 self.tblogger.add_scalar("val/COCOAP50", ap50, self.epoch + 1)
                 self.tblogger.add_scalar("val/COCOAP50_95", ap50_95, self.epoch + 1)
             if self.args.logger == "wandb":

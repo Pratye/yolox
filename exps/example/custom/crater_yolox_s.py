@@ -27,10 +27,14 @@ class Exp(MyExp):
         # Dataset configuration
         # Path relative to YOLOX root directory (go up 4 levels from exps/example/custom/ to YOLOX root)
         yolox_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        # Go up one more level to workspace root, then to data/train
+        # Go up one more level to workspace root
         workspace_root = os.path.dirname(yolox_root)
-        self.data_dir = os.path.join(workspace_root, "data", "train")
-        
+        self.data_dir = workspace_root  # Parent directory containing data/
+
+        # COCO annotation files (will be created by convert_csv_to_coco.py)
+        self.train_ann = "instances_train2017.json"
+        self.val_ann = "instances_val2017.json"
+
         # Training configuration
         self.max_epoch = 300
         self.data_num_workers = 4
@@ -62,10 +66,12 @@ class Exp(MyExp):
             cache: Whether to cache images
             cache_type: "ram" or "disk"
         """
-        from yolox.data import CraterDataset, TrainTransform
-        
-        return CraterDataset(
+        from yolox.data import COCODataset, TrainTransform
+
+        return COCODataset(
             data_dir=self.data_dir,
+            json_file=self.train_ann,
+            name="",  # Empty name since our paths are relative to data_dir
             img_size=self.input_size,
             preproc=TrainTransform(
                 max_labels=120,
@@ -74,33 +80,31 @@ class Exp(MyExp):
             ),
             cache=cache,
             cache_type=cache_type,
-            split="train",
         )
 
     def get_eval_dataset(self, **kwargs):
         """
         Get validation dataset.
         """
-        from yolox.data import CraterDataset, ValTransform
+        from yolox.data import COCODataset, ValTransform
         legacy = kwargs.get("legacy", False)
-        
-        return CraterDataset(
+
+        return COCODataset(
             data_dir=self.data_dir,
+            json_file=self.val_ann,
+            name="",  # Empty name since our paths are relative to data_dir
             img_size=self.test_size,
             preproc=ValTransform(legacy=legacy),
-            split="val",
         )
 
     def get_evaluator(self, batch_size, is_distributed, testdev=False, legacy=False):
         """
         Get evaluator for validation.
-        Note: You may need to create a custom evaluator for crater detection
-        or use a generic one if available.
+        Uses custom CraterEvaluator for proper crater detection metrics.
         """
         from yolox.evaluators import COCOEvaluator
-        
-        # For now, use COCO evaluator format
-        # You may need to create a custom evaluator later
+
+        # Use COCOEvaluator with our COCO format data
         return COCOEvaluator(
             dataloader=self.get_eval_loader(batch_size, is_distributed, testdev=testdev, legacy=legacy),
             img_size=self.test_size,

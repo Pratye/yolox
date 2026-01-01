@@ -52,36 +52,35 @@ class CraterDataset(CacheDataset):
         
         # Scan directories and collect all images
         self.image_paths = self._scan_images()
-        
-        # Split into train/val
-        random.seed(seed)
-        random.shuffle(self.image_paths)
-        split_idx = int(len(self.image_paths) * train_ratio)
-        
-        if split == "train":
-            self.image_paths = self.image_paths[:split_idx]
-        else:  # val
-            self.image_paths = self.image_paths[split_idx:]
-        
-        self.num_imgs = len(self.image_paths)
-        
-        # Load all annotations
+
+        # Load all annotations first
         self.annotations = self._load_all_annotations()
 
-        # Filter out images that have no annotations to avoid training issues
-        valid_indices = []
+        # Filter out images that have no annotations BEFORE splitting
+        # This ensures consistent train/val splits
+        valid_image_paths = []
         filtered_count = 0
-        for i, img_path in enumerate(self.image_paths):
+        for img_path in self.image_paths:
             num_annotations = len(self.annotations.get(str(img_path), []))
             if num_annotations > 0:
-                valid_indices.append(i)
+                valid_image_paths.append(img_path)
             else:
                 filtered_count += 1
 
         if filtered_count > 0:
             print(f"Filtered out {filtered_count} images with no valid annotations")
-            self.image_paths = [self.image_paths[i] for i in valid_indices]
-            self.num_imgs = len(self.image_paths)
+
+        # Now split the valid images into train/val
+        random.seed(seed)
+        random.shuffle(valid_image_paths)
+        split_idx = int(len(valid_image_paths) * train_ratio)
+
+        if split == "train":
+            self.image_paths = valid_image_paths[:split_idx]
+        else:  # val
+            self.image_paths = valid_image_paths[split_idx:]
+
+        self.num_imgs = len(self.image_paths)
 
         # For caching, we need to set data_dir to a common parent
         # and path_filename relative to that parent

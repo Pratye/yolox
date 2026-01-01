@@ -162,6 +162,12 @@ class CacheDataset(Dataset, metaclass=ABCMeta):
             self.cache_dir = os.path.join(data_dir, cache_dir_name)
             self.path_filename = path_filename
 
+        # For MPS devices, disable caching to prevent memory issues
+        import torch
+        if hasattr(torch, 'backends') and hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            self.cache = False  # Force disable caching for MPS
+            logger.info("MPS device detected - disabling dataset caching to prevent memory issues")
+
         if self.cache and self.cache_type == "ram":
             self.imgs = None
 
@@ -282,7 +288,13 @@ def cache_read_img(use_cache=True):
         """
         @wraps(read_img_fn)
         def wrapper(self, index, use_cache=use_cache):
-            cache = self.cache and use_cache
+            # For MPS devices, disable caching to prevent memory issues
+            import torch
+            if hasattr(torch, 'backends') and hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                cache = False  # Force disable caching for MPS
+            else:
+                cache = self.cache and use_cache
+
             if cache:
                 if self.cache_type == "ram":
                     img = self.imgs[index]

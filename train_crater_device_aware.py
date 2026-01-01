@@ -93,7 +93,18 @@ def main():
             args.devices = get_num_devices()
         else:
             args.devices = 1  # MPS and CPU only support single device
-    
+
+    # Adjust batch size for MPS - use conservative size with periodic memory clearing
+    if device_type == "mps" and args.batch_size > 2:
+        original_batch = args.batch_size
+        args.batch_size = 2  # Conservative batch size for memory stability
+        logger.warning(f"Reducing batch size from {original_batch} to {args.batch_size} for MPS memory stability")
+
+    # Force disable caching for MPS to prevent memory accumulation
+    if device_type == "mps" and args.cache is not None:
+        logger.warning("Disabling caching for MPS - using aggressive memory clearing instead")
+        args.cache = None
+
     # Warn about MPS limitations
     if is_mps_device(device_str):
         logger.warning("=" * 60)
@@ -102,7 +113,8 @@ def main():
         logger.warning("- Distributed training is not supported")
         logger.warning("- Mixed precision (FP16) may be slower")
         logger.warning("- Some operations may fall back to CPU")
-        logger.warning(f"- Recommended batch size: {args.batch_size}")
+        logger.warning("- Image caching available (use --cache for faster training)")
+        logger.warning(f"- Recommended batch size: {get_optimal_batch_size(device_type)} (currently {args.batch_size})")
         logger.warning("=" * 60)
         
         # Disable distributed training for MPS
@@ -118,8 +130,9 @@ def main():
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
     
+    # Caching is now handled in MPS patch with memory management
     if args.cache is not None:
-        exp.dataset = exp.get_dataset(cache=True, cache_type=args.cache)
+        logger.info(f"Enabling dataset caching (type: {args.cache})")
     
     # For MPS/CPU, we need to modify the trainer to use the correct device
     if is_mps_device(device_str):

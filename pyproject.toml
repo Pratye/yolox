@@ -1,0 +1,19 @@
+[project]
+name = "yolox"
+version = "0.1.0"
+description = ""
+authors = [
+    { name = "Pratye", email = "Pratye2006@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "numpy (>=1.23,<2.1)",
+    "opencv-python (>=4.12.0.88,<5.0.0.0)",
+    "torchvision (>=0.24.1,<0.25.0)",
+    "tensorboard (>=2.20.0,<3.0.0)"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

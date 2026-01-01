@@ -5,7 +5,11 @@ import ast
 import pprint
 from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Tuple
-from tabulate import tabulate
+try:
+    from tabulate import tabulate
+    HAS_TABULATE = True
+except ImportError:
+    HAS_TABULATE = False
 
 import torch
 from torch.nn import Module
@@ -18,7 +22,8 @@ class BaseExp(metaclass=ABCMeta):
 
     def __init__(self):
         self.seed = None
-        self.output_dir = "./drive/MyDrive/YOLOX_weights"
+        # self.output_dir = "/content/drive/MyDrive/YOLOX_weights"
+        self.output_dir = "./YOLOX_outputs"
         self.print_interval = 100
         self.eval_interval = 10
         self.dataset = None
@@ -62,7 +67,15 @@ class BaseExp(metaclass=ABCMeta):
             for k, v in vars(self).items()
             if not k.startswith("_")
         ]
-        return tabulate(exp_table, headers=table_header, tablefmt="fancy_grid")
+        if HAS_TABULATE:
+            return tabulate(exp_table, headers=table_header, tablefmt="fancy_grid")
+        else:
+            # Fallback: simple text format
+            lines = [f"{table_header[0]:<25} {table_header[1]}"]
+            lines.append("-" * 50)
+            for key, value in exp_table:
+                lines.append(f"{key:<25} {value}")
+            return "\n".join(lines)
 
     def merge(self, cfg_list):
         assert len(cfg_list) % 2 == 0, f"length must be even, check value here: {cfg_list}"

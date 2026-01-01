@@ -10,7 +10,11 @@ import tempfile
 import time
 from collections import ChainMap, defaultdict
 from loguru import logger
-from tabulate import tabulate
+try:
+    from tabulate import tabulate
+    HAS_TABULATE = True
+except ImportError:
+    HAS_TABULATE = False
 from tqdm import tqdm
 
 import numpy as np
@@ -41,14 +45,21 @@ def per_class_AR_table(coco_eval, class_names=COCO_CLASSES, headers=["class", "A
         ar = np.mean(recall) if recall.size else float("nan")
         per_class_AR[name] = float(ar * 100)
 
-    num_cols = min(colums, len(per_class_AR) * len(headers))
-    result_pair = [x for pair in per_class_AR.items() for x in pair]
-    row_pair = itertools.zip_longest(*[result_pair[i::num_cols] for i in range(num_cols)])
-    table_headers = headers * (num_cols // len(headers))
-    table = tabulate(
-        row_pair, tablefmt="pipe", floatfmt=".3f", headers=table_headers, numalign="left",
-    )
-    return table
+    if HAS_TABULATE:
+        num_cols = min(colums, len(per_class_AR) * len(headers))
+        result_pair = [x for pair in per_class_AR.items() for x in pair]
+        row_pair = itertools.zip_longest(*[result_pair[i::num_cols] for i in range(num_cols)])
+        table_headers = headers * (num_cols // len(headers))
+        table = tabulate(
+            row_pair, tablefmt="pipe", floatfmt=".3f", headers=table_headers, numalign="left",
+        )
+        return table
+    else:
+        # Fallback: simple text format
+        lines = [f"{headers[0]:<10} {headers[1]}"]
+        for name, ar in per_class_AR.items():
+            lines.append(f"{name:<10} {ar:.3f}")
+        return "\n".join(lines)
 
 
 def per_class_AP_table(coco_eval, class_names=COCO_CLASSES, headers=["class", "AP"], colums=6):
@@ -66,14 +77,21 @@ def per_class_AP_table(coco_eval, class_names=COCO_CLASSES, headers=["class", "A
         ap = np.mean(precision) if precision.size else float("nan")
         per_class_AP[name] = float(ap * 100)
 
-    num_cols = min(colums, len(per_class_AP) * len(headers))
-    result_pair = [x for pair in per_class_AP.items() for x in pair]
-    row_pair = itertools.zip_longest(*[result_pair[i::num_cols] for i in range(num_cols)])
-    table_headers = headers * (num_cols // len(headers))
-    table = tabulate(
-        row_pair, tablefmt="pipe", floatfmt=".3f", headers=table_headers, numalign="left",
-    )
-    return table
+    if HAS_TABULATE:
+        num_cols = min(colums, len(per_class_AP) * len(headers))
+        result_pair = [x for pair in per_class_AP.items() for x in pair]
+        row_pair = itertools.zip_longest(*[result_pair[i::num_cols] for i in range(num_cols)])
+        table_headers = headers * (num_cols // len(headers))
+        table = tabulate(
+            row_pair, tablefmt="pipe", floatfmt=".3f", headers=table_headers, numalign="left",
+        )
+        return table
+    else:
+        # Fallback: simple text format
+        lines = [f"{headers[0]:<10} {headers[1]}"]
+        for name, ap in per_class_AP.items():
+            lines.append(f"{name:<10} {ap:.3f}")
+        return "\n".join(lines)
 
 
 class COCOEvaluator:
@@ -132,7 +150,14 @@ class COCOEvaluator:
             summary (sr): summary info of evaluation.
         """
         # TODO half to amp_test
-        tensor_type = torch.cuda.HalfTensor if half else torch.cuda.FloatTensor
+        # Make tensor_type device-aware for MPS/CUDA compatibility
+        model_device = next(model.parameters()).device
+        if model_device.type == "cuda":
+            tensor_type = torch.cuda.HalfTensor if half else torch.cuda.FloatTensor
+        elif model_device.type == "mps":
+            tensor_type = torch.HalfTensor if half else torch.FloatTensor  # MPS uses CPU tensors but moves to MPS device
+        else:  # CPU
+            tensor_type = torch.HalfTensor if half else torch.FloatTensor
         model = model.eval()
         if half:
             model = model.half()
@@ -151,7 +176,7 @@ class COCOEvaluator:
             model_trt = TRTModule()
             model_trt.load_state_dict(torch.load(trt_file))
 
-            x = torch.ones(1, 3, test_size[0], test_size[1]).cuda()
+            x = torch.ones(1, 3, test_size[0], test_size[1]).to(model_device)
             model(x)
             model = model_trt
 
@@ -160,6 +185,8 @@ class COCOEvaluator:
         ):
             with torch.no_grad():
                 imgs = imgs.type(tensor_type)
+                # Ensure images are on the same device as the model
+                imgs = imgs.to(model_device)
 
                 # skip the last iters since batchsize might be not enough for batch inference
                 is_time_record = cur_iter < len(self.dataloader) - 1
@@ -186,7 +213,7 @@ class COCOEvaluator:
             data_list.extend(data_list_elem)
             output_data.update(image_wise_data)
 
-        statistics = torch.cuda.FloatTensor([inference_time, nms_time, n_samples])
+        statistics = torch.FloatTensor([inference_time, nms_time, n_samples]).to(model_device)
         if distributed:
             # different process/device might have different speed,
             # to make sure the process will not be stucked, sync func is used here.
@@ -281,6 +308,12 @@ class COCOEvaluator:
 
         # Evaluate the Dt (detection) json comparing with the ground truth
         if len(data_dict) > 0:
+            # Check if dataset provides COCO ground truth (for custom datasets like CraterDataset)
+            if not hasattr(self.dataloader.dataset, 'coco') or self.dataloader.dataset.coco is None:
+                logger.info("Dataset does not provide COCO format ground truth. Skipping COCO evaluation.")
+                logger.info("Consider implementing a custom evaluator for this dataset type.")
+                return {"bbox": {"AP": 0.0, "AP50": 0.0, "AP75": 0.0}}, time_info
+
             cocoGt = self.dataloader.dataset.coco
             # TODO: since pycocotools can't process dict in py36, write data to json file.
             if self.testdev:
