@@ -29,9 +29,11 @@ class Exp(MyExp):
         yolox_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         # Go up one more level to workspace root
         workspace_root = os.path.dirname(yolox_root)
-        self.data_dir = workspace_root  # Parent directory containing data/
+        # Set data directory to where COCO annotations are created
+        coco_annotations_dir = os.path.join(workspace_root, "datasets", "coco_crater")
+        self.data_dir = coco_annotations_dir  # Directory containing annotations/
 
-        # COCO annotation files (will be created by convert_csv_to_coco.py)
+        # COCO annotation files (created by convert_csv_to_coco.py)
         self.train_ann = "instances_train2017.json"
         self.val_ann = "instances_val2017.json"
 

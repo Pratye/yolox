@@ -57,6 +57,18 @@ class COCODataset(CacheDataset):
         """
         if data_dir is None:
             data_dir = os.path.join(get_yolox_datadir(), "COCO")
+
+        # Initialize CacheDataset first
+        super().__init__(
+            input_dimension=img_size,
+            num_imgs=None,  # Will be set after COCO loading
+            data_dir=data_dir,
+            cache_dir_name=f"cache_{name}",
+            path_filename=None,  # Will be set after COCO loading
+            cache=cache,
+            cache_type=cache_type
+        )
+
         self.data_dir = data_dir
         self.json_file = json_file
 
@@ -72,16 +84,10 @@ class COCODataset(CacheDataset):
         self.preproc = preproc
         self.annotations = self._load_coco_annotations()
 
-        path_filename = [os.path.join(name, anno[3]) for anno in self.annotations]
-        super().__init__(
-            input_dimension=img_size,
-            num_imgs=self.num_imgs,
-            data_dir=data_dir,
-            cache_dir_name=f"cache_{name}",
-            path_filename=path_filename,
-            cache=cache,
-            cache_type=cache_type
-        )
+        # Update CacheDataset with correct parameters
+        # file_name in annotations is already relative to data_dir
+        path_filename = [anno[3] for anno in self.annotations]
+        self.path_filename = path_filename
 
     def __len__(self):
         return self.num_imgs

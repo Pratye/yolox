@@ -156,7 +156,11 @@ def convert_csv_to_coco(data_dir, output_dir, split="train"):
         image_id += 1
 
     # Save COCO format JSON
-    output_file = output_dir / f"instances_{split}2017.json"
+    # Create annotations subdirectory for COCO format
+    annotations_dir = output_dir / "annotations"
+    annotations_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file = annotations_dir / f"instances_{split}2017.json"
     with open(output_file, 'w') as f:
         json.dump(coco_data, f, indent=2)
 

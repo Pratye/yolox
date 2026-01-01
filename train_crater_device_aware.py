@@ -130,10 +130,18 @@ def main():
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
     
-    # Caching is now handled in MPS patch with memory management
+    # Handle caching properly for different devices
     if args.cache is not None:
-        logger.info(f"Enabling dataset caching (type: {args.cache})")
-    
+        if device_type == "cuda":
+            # For CUDA, create dataset with caching enabled before trainer
+            logger.info(f"Enabling dataset caching (type: {args.cache})")
+            exp.dataset = exp.get_dataset(cache=True, cache_type=args.cache)
+            # Clear cache arg so trainer doesn't try to handle it
+            args.cache = None
+        else:
+            # For MPS/CPU, caching is handled in patches
+            logger.info(f"Enabling dataset caching (type: {args.cache})")
+
     # For MPS/CPU, we need to modify the trainer to use the correct device
     if is_mps_device(device_str):
         logger.info("Applying MPS compatibility patches...")
