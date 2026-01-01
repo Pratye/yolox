@@ -30,7 +30,8 @@ class Exp(MyExp):
         # Go up one more level to workspace root
         workspace_root = os.path.dirname(yolox_root)
         # Set data directory to where COCO annotations are created
-        coco_annotations_dir = os.path.join(workspace_root, "datasets", "coco_crater")
+        # Data is in yolox/datasets/coco_crater/
+        coco_annotations_dir = os.path.join(yolox_root, "datasets", "coco_crater")
         self.data_dir = coco_annotations_dir  # Directory containing annotations/
 
         # COCO annotation files (created by convert_csv_to_coco.py)
