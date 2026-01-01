@@ -39,6 +39,15 @@ def convert_csv_to_coco(data_dir, output_dir, split="train"):
 
     # COCO format structure
     coco_data = {
+        "info": {
+            "description": "NASA Crater Detection Dataset",
+            "url": "",
+            "version": "1.0",
+            "year": 2024,
+            "contributor": "NASA Crater Detection Challenge",
+            "date_created": "2024-01-01"
+        },
+        "licenses": [],
         "images": [],
         "annotations": [],
         "categories": []
