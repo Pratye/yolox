@@ -84,8 +84,15 @@ def convert_csv_to_coco(data_dir, output_dir, split="train"):
     annotation_id = 0
 
     for img_path in images_to_process:
-        # Get relative path for COCO file_name (include data/train/ prefix)
-        rel_path = str(img_path.relative_to(data_dir.parent.parent))  # relative to workspace root
+        # Calculate relative path from COCO data_dir to actual image location
+        # COCO data_dir: /content/yolox/datasets/coco_crater/
+        # Images at: /content/data/train/...
+        coco_data_dir = Path(output_dir)  # This will be /content/yolox/datasets/coco_crater/
+        try:
+            file_name = os.path.relpath(str(img_path), str(coco_data_dir))
+        except ValueError:
+            # If relative path calculation fails, use absolute path
+            file_name = str(img_path.resolve())
 
         # Get image dimensions
         img_size = get_image_size(img_path)
