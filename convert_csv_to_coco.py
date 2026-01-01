@@ -105,7 +105,7 @@ def convert_csv_to_coco(data_dir, output_dir, split="train"):
         # Add image to COCO data
         coco_data["images"].append({
             "id": image_id,
-            "file_name": str(rel_path),
+            "file_name": file_name,
             "width": width,
             "height": height
         })
