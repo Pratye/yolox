@@ -19,16 +19,34 @@ from yolox.utils import xyxy2cxcywh
 
 
 def augment_hsv(img, hgain=5, sgain=30, vgain=30):
-    hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
-    hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
-    hsv_augs = hsv_augs.astype(np.int16)
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.int16)
+    """
+    Apply HSV color augmentation. Only works on 3-channel color images.
+    Skips augmentation for grayscale or single-channel images.
+    """
+    # Check if image is suitable for HSV augmentation
+    if len(img.shape) != 3 or img.shape[2] != 3:
+        # Skip HSV augmentation for non-3-channel images (grayscale, etc.)
+        return
 
-    img_hsv[..., 0] = (img_hsv[..., 0] + hsv_augs[0]) % 180
-    img_hsv[..., 1] = np.clip(img_hsv[..., 1] + hsv_augs[1], 0, 255)
-    img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
+    # Additional check: ensure image has meaningful color variation
+    # If all channels are identical (like grayscale converted to 3-channel), skip
+    if np.allclose(img[:, :, 0], img[:, :, 1]) and np.allclose(img[:, :, 1], img[:, :, 2]):
+        return
 
-    cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR, dst=img)  # no return needed
+    try:
+        hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
+        hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
+        hsv_augs = hsv_augs.astype(np.int16)
+        img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.int16)
+
+        img_hsv[..., 0] = (img_hsv[..., 0] + hsv_augs[0]) % 180
+        img_hsv[..., 1] = np.clip(img_hsv[..., 1] + hsv_augs[1], 0, 255)
+        img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
+
+        cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR, dst=img)  # no return needed
+    except cv2.error:
+        # If HSV conversion fails, skip augmentation
+        pass
 
 
 def get_aug_params(value, center=0):
@@ -140,10 +158,27 @@ def _mirror(image, boxes, prob=0.5):
 
 
 def preproc(img, input_size, swap=(2, 0, 1)):
-    if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
+    # Ensure image has 3 channels (should be handled by load_image, but double-check)
+    if len(img.shape) == 2:  # Grayscale
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif len(img.shape) == 3 and img.shape[2] == 1:  # Single channel
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif len(img.shape) == 3 and img.shape[2] == 4:  # RGBA
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
+    elif len(img.shape) == 3 and img.shape[2] == 3:
+        # Already 3-channel BGR
+        pass
     else:
-        padded_img = np.ones(input_size, dtype=np.uint8) * 114
+        # Handle unusual channel counts
+        if len(img.shape) == 3 and img.shape[2] > 3:
+            img = img[:, :, :3]  # Take first 3 channels
+        elif len(img.shape) == 3 and img.shape[2] < 3:
+            # Pad with zeros or repeat channels
+            while img.shape[2] < 3:
+                img = np.concatenate([img, img[:, :, -1:]], axis=2)
+
+    # Now create padded image with 3 channels
+    padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
 
     r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
     resized_img = cv2.resize(

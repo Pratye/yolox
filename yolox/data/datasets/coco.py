@@ -149,8 +149,75 @@ class COCODataset(CacheDataset):
 
         img_file = os.path.join(self.data_dir, self.name, file_name)
 
-        img = cv2.imread(img_file)
+        img = self._load_image_robust(img_file)
         assert img is not None, f"file named {img_file} not found"
+
+        return img
+
+    def _load_image_robust(self, img_file):
+        """
+        Robust image loading that handles different image formats including non-RGB imagery.
+
+        Handles:
+        - Grayscale images (1 channel) -> converts to 3-channel RGB
+        - Multi-channel images -> converts to 3-channel RGB
+        - Standard RGB/BGR images -> ensures consistent BGR format
+        """
+        # Try OpenCV first (handles most formats)
+        img = cv2.imread(img_file)
+
+        if img is None:
+            # Fallback to PIL for formats OpenCV doesn't support
+            try:
+                from PIL import Image
+                pil_img = Image.open(img_file)
+
+                # Convert PIL to numpy array
+                if pil_img.mode == 'L':  # Grayscale
+                    img = np.array(pil_img)
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                elif pil_img.mode == 'RGB':
+                    img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                elif pil_img.mode in ['RGBA', 'LA']:
+                    # Remove alpha channel
+                    img = np.array(pil_img.convert('RGB'))
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                else:
+                    # Convert to RGB first, then to BGR
+                    img = np.array(pil_img.convert('RGB'))
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+            except Exception as e:
+                print(f"Failed to load {img_file} with both OpenCV and PIL: {e}")
+                return None
+
+        # Ensure we have a 3-channel BGR image for YOLOX
+        if len(img.shape) == 2:  # Grayscale
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        elif len(img.shape) == 3 and img.shape[2] == 1:  # Single channel
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        elif len(img.shape) == 3 and img.shape[2] == 4:  # RGBA
+            img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
+        elif len(img.shape) == 3 and img.shape[2] == 3:
+            # Already 3-channel, ensure it's BGR (OpenCV default)
+            pass
+        elif len(img.shape) == 3 and img.shape[2] > 3:
+            # Multi-channel image (e.g., hyperspectral) - take first 3 channels
+            img = img[:, :, :3]
+        else:
+            # Unknown format, try to convert to 3-channel
+            try:
+                if len(img.shape) == 3:
+                    img = img[:, :, :3]  # Take first 3 channels
+                else:
+                    # Convert grayscale to RGB
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            except:
+                print(f"Warning: Unusual image format for {img_file}, shape: {img.shape}")
+                # Last resort: convert to uint8 and ensure 3 channels
+                img = img.astype(np.uint8)
+                if len(img.shape) == 2:
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
         return img
 
