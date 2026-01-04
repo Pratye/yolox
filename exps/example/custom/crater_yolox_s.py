@@ -35,8 +35,8 @@ class Exp(MyExp):
         self.data_dir = coco_annotations_dir  # Directory containing annotations/
 
         # COCO annotation files (created by convert_csv_to_coco.py)
-        self.train_ann = "instances_train2017.json"
-        self.val_ann = "instances_val2017.json"
+        self.train_ann = "instances_train2017_fixed.json"
+        self.val_ann = "instances_val2017_fixed.json"
 
         # Training configuration
         self.max_epoch = 300
@@ -47,7 +47,11 @@ class Exp(MyExp):
         # Transform configuration
         self.mosaic_prob = 1.0
         self.mixup_prob = 1.0
-        self.hsv_prob = 1.0
+        self.hsv_prob = 1.0  # Keep HSV augmentation for replicated grayscale channels
+
+        # Disable RGB mean/std normalization for grayscale images (like brain MRI example)
+        self.rgb_means = None
+        self.std = None
         self.flip_prob = 0.5
         
         # Learning rate configuration

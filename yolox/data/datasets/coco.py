@@ -156,12 +156,13 @@ class COCODataset(CacheDataset):
 
     def _load_image_robust(self, img_file):
         """
-        Robust image loading that handles different image formats including non-RGB imagery.
+        Robust image loading that handles different image formats.
+        For grayscale crater detection, converts to 3-channel RGB by replicating grayscale channel.
 
         Handles:
-        - Grayscale images (1 channel) -> converts to 3-channel RGB
+        - Grayscale images (1 channel) -> converts to 3-channel RGB (replicated)
         - Multi-channel images -> converts to 3-channel RGB
-        - Standard RGB/BGR images -> ensures consistent BGR format
+        - Standard RGB images -> ensures consistent BGR format
         """
         # Try OpenCV first (handles most formats)
         img = cv2.imread(img_file)
@@ -175,6 +176,7 @@ class COCODataset(CacheDataset):
                 # Convert PIL to numpy array
                 if pil_img.mode == 'L':  # Grayscale
                     img = np.array(pil_img)
+                    # Convert grayscale to 3-channel by replicating
                     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
                 elif pil_img.mode == 'RGB':
                     img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
@@ -193,6 +195,7 @@ class COCODataset(CacheDataset):
 
         # Ensure we have a 3-channel BGR image for YOLOX
         if len(img.shape) == 2:  # Grayscale
+            # Convert grayscale to 3-channel RGB by replicating the channel
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         elif len(img.shape) == 3 and img.shape[2] == 1:  # Single channel
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
