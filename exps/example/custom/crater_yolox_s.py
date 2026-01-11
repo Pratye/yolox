@@ -35,8 +35,8 @@ class Exp(MyExp):
         self.data_dir = coco_annotations_dir  # Directory containing annotations/
 
         # COCO annotation files (created by convert_csv_to_coco.py)
-        self.train_ann = "instances_train2017_fixed.json"
-        self.val_ann = "instances_val2017_fixed.json"
+        self.train_ann = "instances_train2017.json"
+        self.val_ann = "instances_val2017.json"
 
         # Training configuration
         self.max_epoch = 300
